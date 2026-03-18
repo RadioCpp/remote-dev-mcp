@@ -346,6 +346,41 @@ PYTHONPATH=src \
 python3 -m unittest tests.test_ssh_integration -v
 ```
 
+Build and validate distributable artifacts locally:
+
+```bash
+python3 -m pip install --upgrade build twine
+python3 -m build
+python3 -m twine check dist/*
+```
+
+## Releases and PyPI
+
+This repository is set up for publishing through GitHub Actions to PyPI using
+Trusted Publishing.
+
+Files involved:
+
+- [ci.yml](/home/radiocpp/platform/opensource/remote-dev-mcp/.github/workflows/ci.yml)
+- [publish.yml](/home/radiocpp/platform/opensource/remote-dev-mcp/.github/workflows/publish.yml)
+
+Before the first release, you still need to do one-time setup outside the repository:
+
+1. Create the `remote-dev-mcp` project on PyPI, or create a pending publisher for it.
+2. Configure a Trusted Publisher on PyPI for:
+   - GitHub owner: `RadioCpp`
+   - repository: `remote-dev-mcp`
+   - workflow: `publish.yml`
+   - environment: `pypi`
+3. Create a GitHub environment named `pypi`.
+
+After that, the release flow is:
+
+1. Bump the version in [pyproject.toml](/home/radiocpp/platform/opensource/remote-dev-mcp/pyproject.toml).
+2. Push the version change.
+3. Create a GitHub Release, for example `v0.1.0`.
+4. The `Publish` workflow builds and uploads the package to PyPI.
+
 ## Security Model
 
 This server reduces risk, but it is not a sandbox.
