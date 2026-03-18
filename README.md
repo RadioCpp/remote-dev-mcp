@@ -389,3 +389,9 @@ This repository is already in usable internal-beta shape:
 - real Docker-based `ssh -> tmux -> cmake -> ctest -> runtime` integration exists
 
 The remaining roadmap is tracked in [TODO.md](/home/radiocpp/platform/opensource/remote-dev-mcp/TODO.md).
+
+## License
+
+This project is licensed under Apache License 2.0.
+
+See [LICENSE](/home/radiocpp/platform/opensource/remote-dev-mcp/LICENSE).

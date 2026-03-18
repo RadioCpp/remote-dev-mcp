@@ -8,9 +8,31 @@ version = "0.1.0"
 description = "Config-driven MCP server for safe remote build/test workflows over SSH and tmux"
 readme = "README.md"
 requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [
+  {name = "Anton Terentev", email = "radiocpp@gmail.com"},
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Testing",
+  "Topic :: System :: Systems Administration",
+]
 dependencies = [
   "mcp>=1.26.0,<2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/RadioCpp/remote-dev-mcp"
+Repository = "https://github.com/RadioCpp/remote-dev-mcp"
+Issues = "https://github.com/RadioCpp/remote-dev-mcp/issues"
 
 [project.scripts]
 remote-dev-mcp = "remote_dev_mcp.__main__:main"
@@ -20,4 +42,3 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
