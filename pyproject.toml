@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remote-dev-mcp"
+version = "0.1.0"
+description = "Config-driven MCP server for safe remote build/test workflows over SSH and tmux"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "mcp>=1.26.0,<2",
+]
+
+[project.scripts]
+remote-dev-mcp = "remote_dev_mcp.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

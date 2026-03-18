@@ -1,0 +1,237 @@
+# Team-ready template for a remote C/C++ workflow with:
+# - configure via cmake
+# - build via cmake --build
+# - test via ctest
+# - long-running runtime instances in tmux-backed sessions
+#
+# Replace all HOST/PATH placeholders before use.
+
+[server]
+name = "remote-dev-mcp"
+default_host = "devbox"
+state_dir = "~/.remote-dev-mcp"
+session_prefix = "rdmcp"
+default_read_max_bytes = 32768
+max_read_max_bytes = 131072
+transport = "stdio"
+log_level = "INFO"
+
+[hosts.devbox]
+transport = "ssh"
+destination = "YOUR_SSH_HOST_ALIAS_OR_USER@HOST"
+ssh_command = "ssh"
+ssh_args = ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes"]
+tmux_command = "tmux"
+shell_path = "/bin/sh"
+remote_state_dir = "/tmp/remote-dev-mcp"
+allowed_cwd_roots = [
+  "/ABS/REMOTE/REPO",
+  "/ABS/REMOTE/REPO/build-debug",
+  "/ABS/REMOTE/REPO/build-release",
+  "/ABS/REMOTE/REPO/out",
+  "/ABS/REMOTE/REPO/config",
+  "/ABS/REMOTE/REPO/logs",
+]
+
+[hosts.devbox.variables]
+repo_root = "/ABS/REMOTE/REPO"
+build_debug_dir = "/ABS/REMOTE/REPO/build-debug"
+build_release_dir = "/ABS/REMOTE/REPO/build-release"
+install_debug_dir = "/ABS/REMOTE/REPO/out/debug"
+install_release_dir = "/ABS/REMOTE/REPO/out/release"
+config_dir = "/ABS/REMOTE/REPO/config"
+log_dir = "/ABS/REMOTE/REPO/logs"
+runtime_bin = "/ABS/REMOTE/REPO/out/debug/bin/your_app"
+
+[hosts.devbox.env]
+CCACHE_DIR = "/ABS/REMOTE/CCACHE"
+
+[actions.configure]
+description = "Run CMake configure for a selected build profile"
+host = "devbox"
+category = "build"
+tags = ["cmake", "configure"]
+program = "cmake"
+args = [
+  "-S", "{repo_root}",
+  "-B", "{build_dir}",
+  "-G", "{generator}",
+  "-DCMAKE_BUILD_TYPE={build_type}",
+  "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 1800
+history_limit = 50000
+
+[actions.configure.params.build_dir]
+type = "enum"
+description = "Remote build directory"
+values = [
+  "/ABS/REMOTE/REPO/build-debug",
+  "/ABS/REMOTE/REPO/build-release",
+]
+
+[actions.configure.params.generator]
+type = "enum"
+description = "CMake generator"
+values = ["Ninja", "Unix Makefiles"]
+default = "Ninja"
+
+[actions.configure.params.build_type]
+type = "enum"
+description = "CMake build type"
+values = ["Debug", "Release", "RelWithDebInfo"]
+default = "Debug"
+
+[actions.build_target]
+description = "Build a configured CMake target"
+host = "devbox"
+category = "build"
+tags = ["cmake", "build"]
+program = "cmake"
+args = [
+  "--build", "{build_dir}",
+  "--target", "{target}",
+  "-j", "{jobs}",
+]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 3600
+history_limit = 100000
+
+[actions.build_target.params.build_dir]
+type = "enum"
+description = "Configured build directory"
+values = [
+  "/ABS/REMOTE/REPO/build-debug",
+  "/ABS/REMOTE/REPO/build-release",
+]
+
+[actions.build_target.params.target]
+type = "enum"
+description = "Allowed build target"
+values = [
+  "all",
+  "core",
+  "tests",
+  "your_app",
+]
+
+[actions.build_target.params.jobs]
+type = "int"
+description = "Parallelism"
+default = 16
+min = 1
+max = 128
+
+[actions.run_ctest_regex]
+description = "Run ctest by regex in a selected build directory"
+host = "devbox"
+category = "test"
+tags = ["ctest", "regex"]
+program = "ctest"
+args = [
+  "--test-dir", "{build_dir}",
+  "-R", "{test_regex}",
+  "--output-on-failure",
+]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 3600
+history_limit = 100000
+
+[actions.run_ctest_regex.params.build_dir]
+type = "enum"
+values = [
+  "/ABS/REMOTE/REPO/build-debug",
+  "/ABS/REMOTE/REPO/build-release",
+]
+
+[actions.run_ctest_regex.params.test_regex]
+type = "string"
+description = "ctest -R regex"
+pattern = "^[A-Za-z0-9_./:+*?-]+$"
+
+[actions.run_ctest_label]
+description = "Run ctest by label regex in a selected build directory"
+host = "devbox"
+category = "test"
+tags = ["ctest", "label"]
+program = "ctest"
+args = [
+  "--test-dir", "{build_dir}",
+  "-L", "{label_regex}",
+  "--output-on-failure",
+]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 3600
+history_limit = 100000
+
+[actions.run_ctest_label.params.build_dir]
+type = "enum"
+values = [
+  "/ABS/REMOTE/REPO/build-debug",
+  "/ABS/REMOTE/REPO/build-release",
+]
+
+[actions.run_ctest_label.params.label_regex]
+type = "string"
+description = "ctest -L regex"
+pattern = "^[A-Za-z0-9_./:+*?-]+$"
+
+[actions.start_instance]
+description = "Start a named runtime instance"
+host = "devbox"
+category = "runtime"
+tags = ["instance", "runtime"]
+program = "{runtime_bin}"
+args = [
+  "--config", "{instance_config}",
+  "--log-file", "{log_file}",
+]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 86400
+history_limit = 200000
+ready_regex = "INSTANCE_STARTED"
+concurrency_policy = "replace"
+
+[actions.start_instance.params.instance_config]
+type = "path"
+description = "Allowed runtime config path"
+roots = ["/ABS/REMOTE/REPO/config"]
+
+[actions.start_instance.params.log_file]
+type = "path"
+description = "Allowed runtime log path"
+roots = ["/ABS/REMOTE/REPO/logs"]
+
+[actions.install_artifact]
+description = "Install into a selected prefix"
+host = "devbox"
+category = "build"
+tags = ["cmake", "install"]
+program = "cmake"
+args = [
+  "--install", "{build_dir}",
+  "--prefix", "{install_prefix}",
+]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 3600
+
+[actions.install_artifact.params.build_dir]
+type = "enum"
+values = [
+  "/ABS/REMOTE/REPO/build-debug",
+  "/ABS/REMOTE/REPO/build-release",
+]
+
+[actions.install_artifact.params.install_prefix]
+type = "enum"
+values = [
+  "/ABS/REMOTE/REPO/out/debug",
+  "/ABS/REMOTE/REPO/out/release",
+]

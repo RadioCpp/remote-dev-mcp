@@ -1,0 +1,99 @@
+[server]
+name = "remote-dev-mcp"
+default_host = "devbox"
+state_dir = "~/.remote-dev-mcp"
+session_prefix = "rdmcp"
+default_read_max_bytes = 32768
+max_read_max_bytes = 131072
+host = "127.0.0.1"
+port = 8000
+transport = "stdio"
+log_level = "INFO"
+
+[hosts.devbox]
+transport = "ssh"
+destination = "devbox"
+ssh_command = "ssh"
+ssh_args = ["-o", "BatchMode=yes"]
+tmux_command = "tmux"
+shell_path = "/bin/sh"
+remote_state_dir = "/tmp/remote-dev-mcp"
+allowed_cwd_roots = [
+  "/work/project",
+  "/work/project/build-debug",
+  "/work/project/build-release",
+]
+
+[hosts.devbox.variables]
+repo_root = "/work/project"
+build_debug = "/work/project/build-debug"
+build_release = "/work/project/build-release"
+bin_dir = "/work/project/bin"
+
+[actions.build_target]
+description = "Build a configured CMake target"
+host = "devbox"
+category = "build"
+tags = ["cmake", "ninja"]
+program = "cmake"
+args = ["--build", "{build_dir}", "--target", "{target}", "-j", "{jobs}"]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 1800
+history_limit = 50000
+
+[actions.build_target.params.build_dir]
+type = "enum"
+description = "Remote build directory"
+values = ["build-debug", "build-release"]
+
+[actions.build_target.params.target]
+type = "enum"
+description = "CMake target name"
+values = ["core", "tests", "app"]
+
+[actions.build_target.params.jobs]
+type = "int"
+description = "Parallel job count"
+default = 16
+min = 1
+max = 64
+
+[actions.run_test]
+description = "Run a single test with ctest"
+host = "devbox"
+category = "test"
+tags = ["ctest"]
+program = "ctest"
+args = ["--test-dir", "{build_dir}", "-R", "{test_name}", "--output-on-failure"]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 1800
+
+[actions.run_test.params.build_dir]
+type = "enum"
+values = ["build-debug", "build-release"]
+
+[actions.run_test.params.test_name]
+type = "string"
+pattern = "^[A-Za-z0-9_.:-]+$"
+
+[actions.start_instance]
+description = "Start a named instance"
+host = "devbox"
+category = "runtime"
+tags = ["instance"]
+program = "{bin_dir}/app"
+args = ["--config", "{instance_config}"]
+cwd = "{repo_root}"
+runner = "tmux"
+timeout_sec = 86400
+ready_regex = "INSTANCE_STARTED"
+concurrency_policy = "replace"
+
+[actions.start_instance.params.instance_config]
+type = "enum"
+values = [
+  "/work/project/config/dev-a.toml",
+  "/work/project/config/dev-b.toml",
+]
